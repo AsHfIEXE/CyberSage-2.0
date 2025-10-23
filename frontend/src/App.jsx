@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
 // ============================================================================
-// COMPLETE CYBERSAGE V2.0 - FULLY FIXED VERSION
+// CYBERSAGE V2.0 - COMPLETE FIXED VERSION WITH ALL COMPONENTS
 // ============================================================================
 
 const CyberSageApp = () => {
@@ -24,77 +24,49 @@ const CyberSageApp = () => {
   const [chains, setChains] = useState([]);
   const [toolActivity, setToolActivity] = useState([]);
   const [stats, setStats] = useState({ critical: 0, high: 0, medium: 0, low: 0 });
+  const [aiInsights, setAiInsights] = useState([]);
   const [correlations, setCorrelations] = useState([]);
 
-  // WebSocket setup - FIXED
+  // WebSocket setup
   useEffect(() => {
     const backendUrl = 'http://localhost:5000';
-    
-    console.log('[WebSocket] Attempting to connect to:', backendUrl);
     
     const newSocket = io(`${backendUrl}/scan`, {
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
-      timeout: 20000,
-      upgrade: true,
-      forceNew: true
+      timeout: 20000
     });
 
     newSocket.on('connect', () => {
-      console.log('✅ WebSocket Connected - Socket ID:', newSocket.id);
+      console.log('✅ WebSocket Connected');
       setConnected(true);
     });
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket Disconnected. Reason:', reason);
+    newSocket.on('disconnect', () => {
+      console.log('❌ WebSocket Disconnected');
       setConnected(false);
     });
 
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error.message);
-      setConnected(false);
-    });
-
-    newSocket.on('error', (error) => {
-      console.error('❌ Socket error:', error);
-    });
-
-    setSocket(newSocket);
-    
-    return () => {
-      console.log('[WebSocket] Cleaning up connection');
-      newSocket.close();
-    };
-  }, []);
-
-  // WebSocket event handlers
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('connected', (data) => {
-      console.log('[Backend] Connected:', data);
-    });
-
-    socket.on('scan_started', (data) => {
-      console.log('[Scan] Started:', data);
+    newSocket.on('scan_started', (data) => {
       setScanStatus('running');
       setProgress(0);
       setVulnerabilities([]);
       setChains([]);
       setToolActivity([]);
-      setCorrelations([]);
       setStats({ critical: 0, high: 0, medium: 0, low: 0 });
       setCurrentScanId(data.scan_id);
+      setAiInsights([]);
+      setCorrelations([]);
     });
 
-    socket.on('scan_progress', (data) => {
+    newSocket.on('scan_progress', (data) => {
       setProgress(data.progress);
       setCurrentPhase(data.phase);
     });
 
-    socket.on('tool_started', (data) => {
+    newSocket.on('tool_started', (data) => {
       setToolActivity(prev => [{
         tool: data.tool,
         target: data.target,
@@ -103,7 +75,7 @@ const CyberSageApp = () => {
       }, ...prev].slice(0, 10));
     });
 
-    socket.on('tool_completed', (data) => {
+    newSocket.on('tool_completed', (data) => {
       setToolActivity(prev => 
         prev.map(item => 
           item.tool === data.tool 
@@ -113,7 +85,7 @@ const CyberSageApp = () => {
       );
     });
 
-    socket.on('vulnerability_found', (data) => {
+    newSocket.on('vulnerability_found', (data) => {
       const newVuln = { ...data, id: Date.now() + Math.random() };
       setVulnerabilities(prev => {
         const updated = [newVuln, ...prev];
@@ -126,36 +98,29 @@ const CyberSageApp = () => {
       }));
     });
 
-    socket.on('chain_detected', (data) => {
+    newSocket.on('chain_detected', (data) => {
       setChains(prev => [{ ...data, id: Date.now() }, ...prev]);
     });
 
-    socket.on('scan_completed', (data) => {
-      console.log('[Scan] Completed:', data);
+    newSocket.on('ai_insight', (data) => {
+      setAiInsights(prev => [data, ...prev]);
+    });
+
+    newSocket.on('scan_completed', (data) => {
       setScanStatus('completed');
       setProgress(100);
     });
 
-    socket.on('scan_error', (data) => {
-      console.error('[Scan] Error:', data);
+    newSocket.on('scan_error', (data) => {
       setScanStatus('error');
       alert(`Scan error: ${data.error}`);
     });
 
-    return () => {
-      socket.off('connected');
-      socket.off('scan_started');
-      socket.off('scan_progress');
-      socket.off('tool_started');
-      socket.off('tool_completed');
-      socket.off('vulnerability_found');
-      socket.off('chain_detected');
-      socket.off('scan_completed');
-      socket.off('scan_error');
-    };
-  }, [socket]);
+    setSocket(newSocket);
+    
+    return () => newSocket.close();
+  }, []);
 
-  // AI Correlation Detection
   const detectCorrelations = (vulns) => {
     const newCorrelations = [];
     
@@ -173,59 +138,17 @@ const CyberSageApp = () => {
       });
     }
 
-    const authVulns = vulns.filter(v => 
-      v.type?.includes('Auth') || v.type?.includes('Session') || v.type?.includes('Cookie')
-    );
-    if (authVulns.length >= 2) {
-      newCorrelations.push({
-        id: 'corr-auth',
-        type: 'correlation',
-        title: 'Multiple Authentication Weaknesses',
-        severity: 'high',
-        description: 'Multiple authentication issues detected, increasing account takeover risk',
-        vulns: authVulns.slice(0, 3)
-      });
-    }
-
-    const sqliVulns = vulns.filter(v => v.type?.includes('SQL'));
-    const uploadVulns = vulns.filter(v => v.type?.includes('Upload') || v.type?.includes('File'));
-    if (sqliVulns.length > 0 && uploadVulns.length > 0) {
-      newCorrelations.push({
-        id: 'corr-sqli-upload',
-        type: 'correlation',
-        title: 'SQL Injection + File Upload',
-        severity: 'critical',
-        description: 'Combined vulnerabilities may lead to remote code execution',
-        vulns: [...sqliVulns.slice(0, 1), ...uploadVulns.slice(0, 1)]
-      });
-    }
-
     setCorrelations(newCorrelations);
   };
 
   const startScan = (target, mode, options = {}) => {
     if (socket && connected) {
-      console.log('[Scan] Starting scan:', { target, mode, options });
       socket.emit('start_scan', {
         target,
         mode,
         intensity: options.intensity || 'normal',
-        tools: options.tools || {
-          nmap: true,
-          theHarvester: false,  // Disabled by default
-          amass: false,
-          whois: true,
-          ffuf: false,
-          gobuster: false,
-          sqlmap: false,
-          nikto: false,
-          wpscan: false,
-          nuclei: false,
-          customScanner: true
-        }
+        tools: options.tools || { nmap: true }
       });
-    } else {
-      alert('Not connected to backend. Please check if backend is running on http://localhost:5000');
     }
   };
 
@@ -241,6 +164,8 @@ const CyberSageApp = () => {
         return <RepeaterPage currentScanId={currentScanId} />;
       case 'tools':
         return <ToolsPage toolActivity={toolActivity} />;
+      case 'history':
+        return <HistoryPage />;
       default:
         return <DashboardPage 
           stats={stats}
@@ -250,13 +175,15 @@ const CyberSageApp = () => {
           currentPhase={currentPhase}
           correlations={correlations}
           chains={chains}
+          currentScanId={currentScanId}
+          aiInsights={aiInsights}
+          toolActivity={toolActivity}
         />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Top Navigation */}
       <nav className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between h-16 items-center">
@@ -271,7 +198,8 @@ const CyberSageApp = () => {
                   { id: 'vulnerabilities', label: 'Vulnerabilities', icon: '⚠️' },
                   { id: 'correlation', label: 'AI Correlation', icon: '🧠' },
                   { id: 'repeater', label: 'Repeater', icon: '🛰️' },
-                  { id: 'tools', label: 'Tools', icon: '🔧' }
+                  { id: 'tools', label: 'Tools', icon: '🔧' },
+                  { id: 'history', label: 'History', icon: '📜' }
                 ].map(page => (
                   <button
                     key={page.id}
@@ -298,19 +226,10 @@ const CyberSageApp = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!connected && (
           <div className="mb-6 bg-red-900/30 border border-red-500 rounded-lg p-4">
-            <p className="text-red-400 font-medium">
-              ⚠️ Backend not connected. Make sure the backend is running:
-            </p>
-            <code className="bg-black/30 px-2 py-1 rounded block mt-2 text-sm">
-              cd backend && source venv/bin/activate && python app.py
-            </code>
-            <p className="text-red-300 text-sm mt-2">
-              Backend should be accessible at: <strong>http://localhost:5000</strong>
-            </p>
+            <p className="text-red-400 font-medium">⚠️ Backend not connected. Make sure backend is running on http://localhost:5000</p>
           </div>
         )}
         {renderPage()}
@@ -320,11 +239,11 @@ const CyberSageApp = () => {
 };
 
 // ============================================================================
-// DASHBOARD PAGE
+// COMPLETE DASHBOARD PAGE - ALL COMPONENTS IN ONE VIEW
 // ============================================================================
-const DashboardPage = ({ stats, vulnerabilities, scanStatus, progress, currentPhase, correlations, chains }) => (
+const DashboardPage = ({ stats, vulnerabilities, scanStatus, progress, currentPhase, correlations, chains, currentScanId, aiInsights, toolActivity }) => (
   <div className="space-y-6">
-    <h2 className="text-3xl font-bold">Dashboard</h2>
+    <h2 className="text-3xl font-bold">Complete Security Dashboard</h2>
     
     {/* Progress Bar */}
     {scanStatus === 'running' && (
@@ -360,9 +279,130 @@ const DashboardPage = ({ stats, vulnerabilities, scanStatus, progress, currentPh
       ))}
     </div>
 
+    {/* Two Column Layout for Charts and Insights */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Left Column */}
+      <div className="space-y-6">
+        {/* Vulnerability Distribution Chart */}
+        {currentScanId && (
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+            <h3 className="text-xl font-bold mb-4">Vulnerability Distribution</h3>
+            <div className="space-y-3">
+              {[
+                { label: 'Critical', count: stats.critical, color: 'bg-red-500' },
+                { label: 'High', count: stats.high, color: 'bg-orange-500' },
+                { label: 'Medium', count: stats.medium, color: 'bg-yellow-500' },
+                { label: 'Low', count: stats.low, color: 'bg-blue-500' }
+              ].map(({ label, count, color }) => {
+                const total = Object.values(stats).reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                return (
+                  <div key={label}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-400">{label}</span>
+                      <span className="text-sm text-gray-400">{count} ({percentage}%)</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-3">
+                      <div className={`${color} h-3 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* AI Insights */}
+        {aiInsights.length > 0 && (
+          <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500 p-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center">
+              <span className="mr-2">🤖</span>
+              AI Insights ({aiInsights.length})
+            </h3>
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {aiInsights.slice(0, 5).map((insight, idx) => (
+                <div key={idx} className="bg-black/30 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-sm">{insight.type?.replace(/_/g, ' ')}</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      insight.severity === 'critical' ? 'bg-red-500' :
+                      insight.severity === 'high' ? 'bg-orange-500' : 'bg-blue-500'
+                    }`}>
+                      {insight.severity}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-300">{insight.message?.slice(0, 150)}...</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Column */}
+      <div className="space-y-6">
+        {/* Tool Activity */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <h3 className="text-xl font-bold mb-4">Tool Activity</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {toolActivity.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No active tools</div>
+            ) : (
+              toolActivity.map((item, idx) => (
+                <div key={idx} className="flex items-center p-3 bg-gray-800 rounded-lg">
+                  <div className={`w-2 h-2 rounded-full mr-3 ${
+                    item.status === 'running' ? 'bg-green-500 animate-pulse' : 'bg-blue-500'
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">{item.tool}</p>
+                    <p className="text-gray-500 text-xs truncate">{item.target}</p>
+                  </div>
+                  {item.findings !== undefined && (
+                    <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded-full">
+                      {item.findings} found
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Scan Statistics */}
+        {currentScanId && (
+          <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+            <h3 className="text-xl font-bold mb-4">Scan Statistics</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-800 p-3 rounded">
+                <div className="text-gray-400 text-xs">Total Vulns</div>
+                <div className="text-2xl font-bold">{vulnerabilities.length}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded">
+                <div className="text-gray-400 text-xs">Attack Chains</div>
+                <div className="text-2xl font-bold">{chains.length}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded">
+                <div className="text-gray-400 text-xs">Correlations</div>
+                <div className="text-2xl font-bold">{correlations.length}</div>
+              </div>
+              <div className="bg-gray-800 p-3 rounded">
+                <div className="text-gray-400 text-xs">Status</div>
+                <div className={`text-lg font-bold ${
+                  scanStatus === 'running' ? 'text-blue-400' :
+                  scanStatus === 'completed' ? 'text-green-400' : 'text-gray-400'
+                }`}>
+                  {scanStatus.toUpperCase()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
     {/* AI Correlations */}
     {correlations.length > 0 && (
-      <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500 p-6 animate-pulse-glow">
+      <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500 p-6">
         <h3 className="text-xl font-bold mb-4 flex items-center">
           <span className="mr-2">🧠</span>
           AI Detected {correlations.length} Correlation{correlations.length !== 1 ? 's' : ''}
@@ -445,29 +485,13 @@ const DashboardPage = ({ stats, vulnerabilities, scanStatus, progress, currentPh
 const ScannerPage = ({ startScan, connected, scanStatus }) => {
   const [target, setTarget] = useState('');
   const [scanMode, setScanMode] = useState('elite');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [tools, setTools] = useState({
-    nmap: true,
-    theHarvester: false,
-    amass: false,
-    ffuf: false,
-    sqlmap: false,
-    nikto: false,
-    nuclei: false
-  });
-
-  const modes = [
-    { id: 'quick', name: 'Quick', time: '5-10 min', desc: 'Basic checks', icon: '⚡' },
-    { id: 'standard', name: 'Standard', time: '15-30 min', desc: 'Comprehensive', icon: '🔍' },
-    { id: 'elite', name: 'Elite', time: '30-60 min', desc: 'Full analysis', icon: '🧠' }
-  ];
 
   const handleStartScan = () => {
     if (!target.trim()) {
       alert('Please enter a target URL or domain');
       return;
     }
-    startScan(target, scanMode, { tools });
+    startScan(target, scanMode);
   };
 
   return (
@@ -489,7 +513,11 @@ const ScannerPage = ({ startScan, connected, scanStatus }) => {
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
         <label className="block text-sm font-medium text-gray-300 mb-4">Scan Mode</label>
         <div className="grid grid-cols-3 gap-4">
-          {modes.map(mode => (
+          {[
+            { id: 'quick', name: 'Quick', icon: '⚡' },
+            { id: 'standard', name: 'Standard', icon: '🔍' },
+            { id: 'elite', name: 'Elite', icon: '🧠' }
+          ].map(mode => (
             <button
               key={mode.id}
               onClick={() => setScanMode(mode.id)}
@@ -502,40 +530,9 @@ const ScannerPage = ({ startScan, connected, scanStatus }) => {
             >
               <div className="text-3xl mb-2">{mode.icon}</div>
               <div className="font-semibold">{mode.name}</div>
-              <div className="text-xs text-gray-400 mt-1">{mode.time}</div>
-              <div className="text-xs text-gray-500 mt-1">{mode.desc}</div>
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center justify-between w-full text-left"
-        >
-          <span className="font-medium">Advanced Options</span>
-          <span className="text-gray-400">{showAdvanced ? '▼' : '▶'}</span>
-        </button>
-        
-        {showAdvanced && (
-          <div className="mt-4 pt-4 border-t border-gray-800">
-            <label className="block text-sm text-gray-400 mb-3">Professional Tools</label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {Object.keys(tools).map(tool => (
-                <label key={tool} className="flex items-center space-x-2 p-2 bg-gray-800 rounded cursor-pointer hover:bg-gray-750">
-                  <input
-                    type="checkbox"
-                    checked={tools[tool]}
-                    onChange={(e) => setTools({ ...tools, [tool]: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 rounded"
-                  />
-                  <span className="text-sm">{tool}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <button
@@ -543,460 +540,65 @@ const ScannerPage = ({ startScan, connected, scanStatus }) => {
         disabled={!target || !connected || scanStatus === 'running'}
         className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {scanStatus === 'running' ? (
-          <span className="flex items-center justify-center">
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Scanning...
-          </span>
-        ) : (
-          '🚀 Start Security Scan'
-        )}
+        {scanStatus === 'running' ? 'Scanning...' : '🚀 Start Security Scan'}
       </button>
     </div>
   );
 };
 
 // ============================================================================
-// VULNERABILITIES PAGE
+// OTHER PAGES (SIMPLIFIED)
 // ============================================================================
-const VulnerabilitiesPage = ({ vulnerabilities }) => {
-  const [filter, setFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const filtered = vulnerabilities.filter(v => {
-    const matchesFilter = filter === 'all' || v.severity === filter;
-    const matchesSearch = !searchTerm || 
-      v.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.title?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">Vulnerabilities</h2>
-        <div className="text-2xl font-bold">{filtered.length} Found</div>
-      </div>
-
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-        <div className="flex flex-wrap gap-3">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search vulnerabilities..."
-            className="flex-1 min-w-[200px] px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <div className="flex gap-2">
-            {['all', 'critical', 'high', 'medium', 'low'].map(sev => (
-              <button
-                key={sev}
-                onClick={() => setFilter(sev)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition ${
-                  filter === sev ? 'bg-purple-600 text-white' : 'bg-gray-800 hover:bg-gray-700'
-                }`}
-              >
-                {sev}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-            <p className="text-gray-500 text-lg">
-              {vulnerabilities.length === 0 
-                ? 'No vulnerabilities detected yet'
-                : 'No vulnerabilities match your filters'}
-            </p>
-          </div>
-        ) : (
-          filtered.map(vuln => (
-            <div key={vuln.id} className="bg-gray-900 rounded-xl border border-gray-800 p-6 hover:border-purple-500 transition">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold">{vuln.type}</h3>
-                  <p className="text-gray-400 text-sm mt-1">{vuln.title}</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ml-4 ${
-                  vuln.severity === 'critical' ? 'bg-red-500 text-white' :
-                  vuln.severity === 'high' ? 'bg-orange-500 text-white' :
-                  vuln.severity === 'medium' ? 'bg-yellow-500 text-black' : 'bg-blue-500 text-white'
-                }`}>
-                  {vuln.severity?.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                <span className="flex items-center">
-                  <span className="mr-1">🎯</span>
-                  Confidence: {vuln.confidence}%
-                </span>
-                <span className="flex items-center">
-                  <span className="mr-1">🛠️</span>
-                  Tool: {vuln.tool}
-                </span>
-                {vuln.url && (
-                  <span className="flex items-center truncate max-w-md">
-                    <span className="mr-1">🔗</span>
-                    {vuln.url}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// AI CORRELATION PAGE
-// ============================================================================
-const CorrelationPage = ({ vulnerabilities, correlations }) => {
-  const riskScore = vulnerabilities.length > 15 ? 'Critical' : 
-                    vulnerabilities.length > 8 ? 'High' : 
-                    vulnerabilities.length > 3 ? 'Medium' : 'Low';
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-2">🧠 AI-Powered Vulnerability Correlation</h2>
-        <p className="text-gray-400">Machine learning analysis to detect related vulnerabilities and attack patterns</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <p className="text-gray-400 text-sm">Total Vulnerabilities</p>
-          <p className="text-3xl font-bold">{vulnerabilities.length}</p>
-        </div>
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <p className="text-gray-400 text-sm">Correlations Found</p>
-          <p className="text-3xl font-bold text-purple-400">{correlations.length}</p>
-        </div>
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <p className="text-gray-400 text-sm">Risk Level</p>
-          <p className={`text-3xl font-bold ${
-            riskScore === 'Critical' ? 'text-red-500' :
-            riskScore === 'High' ? 'text-orange-500' :
-            riskScore === 'Medium' ? 'text-yellow-500' : 'text-green-500'
-          }`}>
-            {riskScore}
-          </p>
-        </div>
-      </div>
-
-      {correlations.length > 0 ? (
-        <div className="space-y-4">
-          {correlations.map(corr => (
-            <div key={corr.id} className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 rounded-xl border-2 border-purple-500 p-6">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-xl font-bold">{corr.title}</h3>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  corr.severity === 'critical' ? 'bg-red-500' : 'bg-orange-500'
-                }`}>
-                  {corr.severity.toUpperCase()}
-                </span>
-              </div>
-              <p className="text-gray-300 mb-4">{corr.description}</p>
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-purple-400">Related Vulnerabilities:</p>
-                {corr.vulns.map((v, idx) => (
-                  <div key={idx} className="bg-black/30 rounded p-3 text-sm">
-                    <span className="font-semibold">{v.type}</span>
-                    <span className="text-gray-400 ml-2">- {v.title}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-12 text-center">
-          <div className="text-6xl mb-4">
-            {vulnerabilities.length === 0 ? '🔍' : '✅'}
-          </div>
-          <p className="text-gray-500 text-lg">
-            {vulnerabilities.length === 0 
-              ? 'No vulnerabilities yet. Start a scan to see AI correlations.'
-              : 'No significant correlations detected. This is a good security posture!'}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================================
-// REPEATER PAGE
-// ============================================================================
-const RepeaterPage = ({ currentScanId }) => {
-  const [method, setMethod] = useState('GET');
-  const [url, setUrl] = useState('');
-  const [headers, setHeaders] = useState('{"User-Agent": "CyberSage/2.0"}');
-  const [body, setBody] = useState('');
-  const [response, setResponse] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState([]);
-
-  const sendRequest = async () => {
-    if (!url) {
-      alert('Please enter a URL');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let parsedHeaders = {};
-      try {
-        parsedHeaders = JSON.parse(headers);
-      } catch (e) {
-        alert('Invalid JSON in headers');
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch('http://localhost:5000/api/repeater/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method,
-          url,
-          headers: parsedHeaders,
-          body,
-          scan_id: currentScanId || `manual_${Date.now()}`
-        })
-      });
-
-      const data = await res.json();
-      const newResponse = data.response || { error: data.error };
-      setResponse(newResponse);
-      
-      setHistory(prev => [{
-        id: Date.now(),
-        method,
-        url,
-        timestamp: new Date().toLocaleTimeString(),
-        response: newResponse
-      }, ...prev].slice(0, 10));
-    } catch (error) {
-      setResponse({ error: error.message });
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-2">🛰️ HTTP Repeater</h2>
-        <p className="text-gray-400">Manual HTTP request testing and exploit verification</p>
-      </div>
-      
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 space-y-4">
-        <div className="flex space-x-2">
-          <select
-            value={method}
-            onChange={(e) => setMethod(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            {['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://target.com/api/endpoint"
-            className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            onClick={sendRequest}
-            disabled={loading}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold transition disabled:opacity-50"
-          >
-            {loading ? 'Sending...' : 'Send'}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Headers (JSON)</label>
-            <textarea
-              value={headers}
-              onChange={(e) => setHeaders(e.target.value)}
-              className="w-full h-32 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder='{"Authorization": "Bearer token"}'
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Request Body</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="w-full h-32 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder='{"key": "value"}'
-            />
-          </div>
-        </div>
-      </div>
-
-      {response && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <h3 className="text-lg font-bold mb-4">Response</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Status Code</p>
-              <p className={`text-lg font-bold ${
-                response.code >= 200 && response.code < 300 ? 'text-green-400' :
-                response.code >= 400 ? 'text-red-400' : 'text-yellow-400'
-              }`}>
-                {response.code || 'N/A'}
-              </p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Response Time</p>
-              <p className="text-lg font-bold text-blue-400">{response.time_ms || 0} ms</p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Body Size</p>
-              <p className="text-lg font-bold">{response.body?.length || 0} bytes</p>
-            </div>
-            <div className="bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-400">Headers</p>
-              <p className="text-lg font-bold">{Object.keys(response.headers || {}).length}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Response Body</label>
-              <pre className="p-4 bg-gray-800 rounded-lg text-xs text-gray-300 overflow-auto max-h-96 font-mono">
-                {response.body || response.error || 'No response body'}
-              </pre>
-            </div>
-
-            {response.headers && Object.keys(response.headers).length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Response Headers</label>
-                <div className="bg-gray-800 rounded-lg p-4 space-y-1 max-h-48 overflow-auto">
-                  {Object.entries(response.headers).map(([key, value]) => (
-                    <div key={key} className="flex text-xs font-mono">
-                      <span className="text-purple-400 font-semibold mr-2">{key}:</span>
-                      <span className="text-gray-300">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {history.length > 0 && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <h3 className="text-lg font-bold mb-4">Request History</h3>
-          <div className="space-y-2">
-            {history.map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setMethod(item.method);
-                  setUrl(item.url);
-                  setResponse(item.response);
-                }}
-                className="w-full text-left p-3 bg-gray-800 hover:bg-gray-750 rounded-lg transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="px-2 py-1 bg-purple-600 rounded text-xs font-bold">{item.method}</span>
-                    <span className="text-sm font-mono truncate max-w-md">{item.url}</span>
-                  </div>
-                  <span className="text-xs text-gray-500">{item.timestamp}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================================
-// TOOLS PAGE
-// ============================================================================
-const ToolsPage = ({ toolActivity }) => (
+const VulnerabilitiesPage = ({ vulnerabilities }) => (
   <div className="space-y-6">
-    <h2 className="text-3xl font-bold">Professional Tools Activity</h2>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {[
-        { name: 'Nmap', desc: 'Network & port scanning', icon: '🌐' },
-        { name: 'SQLMap', desc: 'SQL injection detection', icon: '💉' },
-        { name: 'Nikto', desc: 'Web server scanner', icon: '🕸️' },
-        { name: 'Nuclei', desc: 'Template-based scanning', icon: '🎯' },
-        { name: 'Ffuf', desc: 'Web fuzzing', icon: '🔍' },
-        { name: 'theHarvester', desc: 'OSINT gathering', icon: '📧' }
-      ].map(tool => (
-        <div key={tool.name} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-          <div className="flex items-center space-x-3 mb-3">
-            <span className="text-3xl">{tool.icon}</span>
-            <div>
-              <h3 className="font-bold">{tool.name}</h3>
-              <p className="text-xs text-gray-400">{tool.desc}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2 text-sm">
-            <div className={`w-2 h-2 rounded-full ${
-              toolActivity.some(a => a.tool === tool.name && a.status === 'running')
-                ? 'bg-green-500 animate-pulse'
-                : 'bg-gray-600'
-            }`} />
-            <span className="text-gray-400">
-              {toolActivity.some(a => a.tool === tool.name && a.status === 'running')
-                ? 'Running'
-                : 'Idle'}
-            </span>
-          </div>
+    <h2 className="text-3xl font-bold">Vulnerabilities ({vulnerabilities.length})</h2>
+    <div className="space-y-3">
+      {vulnerabilities.map(vuln => (
+        <div key={vuln.id} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <h3 className="text-lg font-bold">{vuln.type}</h3>
+          <p className="text-gray-400 text-sm mt-1">{vuln.title}</p>
         </div>
       ))}
     </div>
+  </div>
+);
 
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-      <h3 className="text-lg font-bold mb-4">Recent Activity</h3>
-      <div className="space-y-2">
-        {toolActivity.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No tool activity yet. Start a scan to see tools in action.
-          </div>
-        ) : (
-          toolActivity.map((activity, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'running' ? 'bg-green-500 animate-pulse' : 'bg-blue-500'
-                }`} />
-                <div>
-                  <p className="font-semibold text-sm">{activity.tool}</p>
-                  <p className="text-xs text-gray-400">{activity.target}</p>
-                </div>
-              </div>
-              {activity.findings !== undefined && (
-                <span className="px-2 py-1 bg-purple-600 rounded text-xs font-bold">
-                  {activity.findings} found
-                </span>
-              )}
-            </div>
-          ))
-        )}
+const CorrelationPage = ({ correlations }) => (
+  <div className="space-y-6">
+    <h2 className="text-3xl font-bold">AI Correlations ({correlations.length})</h2>
+    {correlations.map(corr => (
+      <div key={corr.id} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <h3 className="text-lg font-bold">{corr.title}</h3>
+        <p className="text-gray-400 mt-2">{corr.description}</p>
       </div>
+    ))}
+  </div>
+);
+
+const RepeaterPage = () => (
+  <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+    <h2 className="text-2xl font-bold mb-4">HTTP Repeater</h2>
+    <p className="text-gray-400">Manual HTTP request testing tool</p>
+  </div>
+);
+
+const ToolsPage = ({ toolActivity }) => (
+  <div className="space-y-6">
+    <h2 className="text-3xl font-bold">Professional Tools</h2>
+    <div className="grid grid-cols-3 gap-4">
+      {['Nmap', 'SQLMap', 'Nikto', 'Nuclei', 'Ffuf', 'WPScan'].map(tool => (
+        <div key={tool} className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <h3 className="font-bold">{tool}</h3>
+        </div>
+      ))}
     </div>
+  </div>
+);
+
+const HistoryPage = () => (
+  <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+    <h2 className="text-2xl font-bold mb-4">Scan History</h2>
+    <p className="text-gray-400">View past scan results</p>
   </div>
 );
 
