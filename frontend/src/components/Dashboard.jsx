@@ -13,6 +13,11 @@ import Repeater from './Repeater';
 import ScannerIntegration from './ScannerIntegration';
 import ScanStatistics from './ScanStatistics';
 import SpiderProgress from './SpiderProgress';
+import APIConfig from './APIConfig';
+import AIInsights from './AIInsights';
+import ImportScan from './ImportScan';
+import ScanCharts from './ScanCharts';
+import EnhancedVulnDetails from './EnhancedVulnDetails';
 
 const Dashboard = () => {
   const { socket, connected } = useWebSocket();
@@ -29,6 +34,8 @@ const Dashboard = () => {
     low: 0
   });
   const [currentScanId, setCurrentScanId] = useState(null);
+  const [aiInsights, setAiInsights] = useState([]);
+  const [selectedVulnId, setSelectedVulnId] = useState(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -93,9 +100,20 @@ const Dashboard = () => {
         ...data,
         id: Date.now() + Math.random()
       };
-      
+
       setChains(prev => [newChain, ...prev]);
       showChainNotification(data);
+    });
+
+    socket.on('ai_insight', (data) => {
+      setAiInsights(prev => [data, ...prev]);
+    });
+
+    socket.on('scan_cancelled', (data) => {
+      console.log('Scan cancelled:', data);
+      setScanStatus('idle');
+      setProgress(0);
+      alert('Scan has been cancelled');
     });
 
     socket.on('scan_completed', (data) => {
@@ -121,6 +139,8 @@ const Dashboard = () => {
       socket.off('chain_detected');
       socket.off('scan_completed');
       socket.off('scan_error');
+      socket.off('ai_insight');
+      socket.off('scan_cancelled');
     };
   }, [socket]);
 
@@ -154,7 +174,9 @@ const Dashboard = () => {
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
-      
+
+      setAiInsights([]);
+
       socket.emit('start_scan', {
         target: target,
         mode: mode,
@@ -179,6 +201,30 @@ const Dashboard = () => {
     } else {
       alert('Not connected to backend. Please check the connection.');
     }
+  };
+
+  const cancelScan = async (scanId) => {
+    if (window.confirm('Are you sure you want to cancel this scan?')) {
+      try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || `${window.location.protocol}//${window.location.hostname}:5000`;
+        const response = await fetch(`${backendUrl}/api/scan/${scanId}/cancel`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          setScanStatus('idle');
+          setProgress(0);
+        }
+      } catch (error) {
+        console.error('Error cancelling scan:', error);
+        alert('Failed to cancel scan');
+      }
+    }
+  };
+
+  const handleImportComplete = (scanId) => {
+    setCurrentScanId(scanId);
+    window.location.reload();
   };
 
   return (
@@ -220,10 +266,12 @@ const Dashboard = () => {
 
         {/* Scan Control */}
         <div className="mb-8">
-          <ScanControl 
-            onStartScan={startScan} 
+          <ScanControl
+            onStartScan={startScan}
+            onCancelScan={cancelScan}
             scanStatus={scanStatus}
             connected={connected}
+            currentScanId={currentScanId}
           />
         </div>
 
@@ -243,37 +291,64 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Feed */}
           <div className="lg:col-span-2 space-y-6">
-            <VulnerabilityFeed vulnerabilities={vulnerabilities} />
-            
+            <VulnerabilityFeed
+              vulnerabilities={vulnerabilities}
+              onViewDetails={(vulnId) => setSelectedVulnId(vulnId)}
+            />
+
             {/* Chain Alerts */}
             {chains.length > 0 && (
               <ChainAlerts chains={chains} />
             )}
-            
+
+            {/* AI Insights */}
+            {aiInsights.length > 0 && (
+              <AIInsights insights={aiInsights} />
+            )}
+
+            {/* Charts */}
+            {currentScanId && (
+              <ScanCharts scanId={currentScanId} />
+            )}
+
             <ScanHistory />
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
+            {/* API Configuration */}
+            <APIConfig />
+
+            {/* Import Scan */}
+            <ImportScan onImportComplete={handleImportComplete} />
+
             {/* Tool Activity */}
             <ToolActivity activity={toolActivity} />
-            
+
             {/* Blueprint Viewer */}
             <BlueprintViewer scanId={currentScanId} />
-            
+
             {/* Spider Progress */}
             <SpiderProgress scanId={currentScanId} isActive={scanStatus === 'running'} />
-            
+
             {/* Repeater */}
             <Repeater currentScanId={currentScanId} />
-            
+
             {/* Scanner Integration */}
             <ScannerIntegration currentScanId={currentScanId} />
-            
+
             {/* Scan Statistics */}
             <ScanStatistics scanId={currentScanId} />
           </div>
         </div>
+
+        {/* Enhanced Vulnerability Details Modal */}
+        {selectedVulnId && (
+          <EnhancedVulnDetails
+            vulnerabilityId={selectedVulnId}
+            onClose={() => setSelectedVulnId(null)}
+          />
+        )}
       </div>
     </div>
   );
