@@ -1,38 +1,59 @@
-# 🧠 CyberSage v2.0 - Elite Vulnerability Intelligence Platform
+# 🧠 CyberSage v2.0 
 
-> **Advanced Security Scanning with AI-Powered Analysis**  
+> **An Elite, Real-Time Vulnerability Intelligence Platform with Professional Tool Integration and AI-Powered Analysis.**
 
+[![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com/)
+[![React](https://img.shields.io/badge/React-18.x-blue?logo=react)](https://reactjs.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-5.x-black?logo=socket.io)](https://socket.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
+
+CyberSage v2.0 is a comprehensive security assessment suite featuring a dynamic web dashboard. It orchestrates a multi-phase scanning engine that integrates industry-standard professional tools, detects complex attack chains, and leverages AI for deeper insights, all streamed in real-time to the user.
+
+---
+
+## 📚 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Usage Guide](#-usage-guide)
+- [Architecture](#️-architecture)
+- [Configuration](#-configuration)
+- [Advanced Features Explained](#-advanced-features-explained)
+- [Troubleshooting](#-troubleshooting)
+- [Legal & Ethical Use](#-legal--ethical-use)
+- [API Reference](#-api-reference)
+- [Contributing](#-contributing)
 
 ---
 
 ## 🎯 Features
 
 ### Core Capabilities
-- ✅ **Real-Time Web Dashboard** - Live vulnerability feed with WebSocket updates
-- ✅ **Advanced Vulnerability Detection** - XSS, SQLi, IDOR, SSRF, and more
-- ✅ **Attack Chain Detection** - Identifies multi-step exploitation paths
-- ✅ **Business Logic Scanner** - Race conditions, price manipulation, auth bypass
-- ✅ **API Security Testing** - REST, GraphQL, rate limiting, mass assignment
-- ✅ **AI-Powered Analysis** - Smart insights and recommendations
-- ✅ **Elite Scanning Modes** - Quick, Standard, and Elite (with AI)
+- ✅ **Real-Time Web Dashboard**: Live vulnerability feed, tool activity, and scan progress powered by WebSockets.
+- ✅ **Professional Tool Integration**: Orchestrates and parses results from Nmap, Nuclei, Ffuf, SQLMap, and more.
+- ✅ **Advanced Vulnerability Detection**: Actively scans for XSS, SQLi, Command Injection, LFI/RFI, IDOR, XXE, and more.
+- ✅ **Attack Chain Detection**: Correlates individual findings to identify high-impact, multi-step exploitation paths.
+- ✅ **Business Logic Scanner**: Finds flaws that automated scanners miss, such as race conditions, price manipulation, and authentication bypasses.
+- ✅ **API Security Testing**: Scans REST and GraphQL endpoints for issues like missing authentication, rate-limiting flaws, and mass assignment.
+- ✅ **AI-Powered Analysis**: (Optional) Provides smart insights, risk scoring, and actionable remediation advice using OpenRouter models.
 
 ### Technical Highlights
-- 🔥 **WebSocket-Based Real-Time Updates**
-- 🧩 **Modular Architecture** - Easy to extend with new scanners
-- 🎨 **Beautiful UI** - Smooth animations and modern design
-- 📊 **Comprehensive Reporting** - Severity analysis, confidence scoring
-- 🤖 **AI Integration** - OpenRouter API for advanced analysis
+- 🔥 **AJAX-Aware Spider**: Uses a headless browser to crawl modern JavaScript-heavy applications.
+- 🧩 **Modular Architecture**: Easily extendable with new, custom scanner modules.
+- 📊 **Comprehensive Reporting**: Export professional PDF reports or detailed JSON data.
+- 📥 **Third-Party Report Import**: Integrate and view results from Burp Suite, OWASP ZAP, and Nessus.
+- 🛰️ **Interactive HTTP Repeater**: Manually send and analyze HTTP requests to verify findings.
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- Node.js 14+
-- pip & npm
+- [Git](https://git-scm.com/)
+- [Docker](https://www.docker.com/products/docker-desktop/) & [Docker Compose](https://docs.docker.com/compose/install/)
 
-### Installation
+### Quick Install (Recommended)
 
 ```bash
 # Clone or extract the project
@@ -44,84 +65,63 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-# Or manual setup:
+### Docker Installation
 
-```
-# Backend
-cd backend
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/AsHfIEXE/CyberSage-2.0.git
+    cd CyberSage-2.0
+    ```
 
-# Frontend
-cd ../frontend
-npm install
-```
+2.  **Configure AI (Optional):**
+    To enable AI features, create a `.env` file in the `backend/` directory.
+    ```bash
+    cp backend/env.example backend/.env
+    ```
+    Now, edit `backend/.env` and add your [OpenRouter API key](https://openrouter.ai/keys).
+    ```env
+    OPENROUTER_API_KEY="sk-or-v1-..."
+    ```
 
-### Running
+3.  **Build and Run:**
+    From the project's root directory, run:
+    ```bash
+    docker-compose up --build
+    ```
 
-**Option 1: Use the start script (recommended)**
-```bash
-./start.sh
-```
-
-**Option 2: Start components separately**
-
-Terminal 1 (Backend):
-```bash
-cd backend
-source venv/bin/activate
-python app.py
-```
-
-Terminal 2 (Frontend):
-```bash
-cd frontend
-npm start
-```
-
-**Access the application:**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+4.  **Access the Application:**
+    -   **Frontend Dashboard**: `http://localhost:3000`
+    -   **Backend API**: `http://localhost:5000`
 
 ---
 
 ## 📖 Usage Guide
 
-### 1. Starting a Scan
+1.  **Start a Scan**:
+    -   Navigate to the dashboard at `http://localhost:3000`.
+    -   Enter your target URL or domain (e.g., `https://example.com`).
+    -   Select a scan mode:
+        -   **⚡ Quick**: Basic, fast checks.
+        -   **🔍 Standard**: Comprehensive vulnerability scan.
+        -   **🧠 Elite**: Full scan including professional tools, business logic, and AI analysis.
+    -   Click **"Start Elite Scan"**.
 
-1. Enter target URL or domain (e.g., `https://example.com` or `example.com`)
-2. Select scan mode:
-   - **⚡ Quick**: ~5 mins - Basic vulnerabilities
-   - **🔍 Standard**: ~15 mins - Comprehensive scan
-   - **🧠 Elite**: ~30 mins - Advanced + AI analysis
-3. Click "🚀 Start Elite Scan"
+2.  **Monitor in Real-Time**:
+    -   Watch the **Progress Bar** for the current scan phase and completion percentage.
+    -   See live findings appear in the **Vulnerability Feed**.
+    -   Keep an eye on **Tool Activity** to see which scanners are currently active.
+    -   Critical **Attack Chains** will appear as high-priority alerts.
 
-### 2. Monitoring Progress
-
-Watch real-time updates:
-- **Progress Bar**: Current phase and percentage
-- **Tool Activity**: Which scanners are running
-- **Vulnerability Feed**: Live findings as they're discovered
-- **Attack Chains**: Critical multi-step vulnerabilities
-
-### 3. Understanding Results
-
-**Severity Levels:**
-- 🔴 **Critical**: Immediate action required (RCE, SQLi, Auth bypass)
-- 🟠 **High**: Serious vulnerabilities (XSS, IDOR, sensitive data exposure)
-- 🟡 **Medium**: Important issues (Missing headers, CORS misconfig)
-- 🟢 **Low**: Minor issues (Info disclosure, best practices)
-
-**Confidence Score:**
-- 90-100%: Very high confidence, verified
-- 70-89%: High confidence, likely true
-- 50-69%: Medium confidence, needs review
-- <50%: Low confidence, possible false positive
+3.  **Analyze Results**:
+    -   Click any vulnerability to open a detailed modal with technical information, HTTP history, and remediation advice.
+    -   Review the **Blueprint Viewer** to understand the application's structure and discovered assets.
+    -   Check the **Scan Charts** and **AI Insights** for a high-level overview and intelligent recommendations.
 
 ---
 
-## 🏗️ Architecture
+## 🏛️ Architecture
+
+CyberSage uses a decoupled frontend/backend architecture, communicating primarily over WebSockets for a real-time, interactive experience.
 
 ```
 CyberSage-2.0/
@@ -130,27 +130,29 @@ CyberSage-2.0/
 │   ├── core/
 │   │   ├── database.py        # SQLite database operations
 │   │   ├── scan_orchestrator.py  # Main scan coordinator
-│   │   └── realtime_broadcaster.py  # WebSocket events
+│   │   └── ...
 │   ├── tools/
 │   │   ├── recon.py          # Reconnaissance engine
 │   │   ├── vuln_scanner.py   # Core vulnerability scanner
+│   │   ├── professional_tools.py # Integration for Nmap, Nuclei, etc.
 │   │   └── advanced/
-│   │       ├── chain_detector.py     # Attack chain detection
-│   │       ├── business_logic.py     # Business logic scanner
-│   │       ├── api_security.py       # API security testing
-│   │       └── ai_analyzer.py        # AI-powered analysis
+│   │       ├── chain_detector.py
+│   │       ├── business_logic.py
+│   │       ├── api_security.py
+│   │       └── ai_analyzer.py
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx
+│   │   ├── App.jsx            # Main React entrypoint
 │   │   ├── components/
-│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Dashboard.jsx  # Main UI layout
 │   │   │   ├── ScanControl.jsx
 │   │   │   ├── VulnerabilityFeed.jsx
-│   │   │   └── ... (other components)
-│   │   └── styles/
-│   │       └── globals.css
+│   │   │   └── ...
+│   │   └── hooks/
+│   │       └── useWebSocket.js # WebSocket connection logic
 │   └── package.json
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -158,385 +160,93 @@ CyberSage-2.0/
 
 ## 🔧 Configuration
 
-### API Key Setup (Optional but Recommended)
+### API Key for AI Analysis
+For AI-powered insights, an OpenRouter API key is required.
 
-For AI analysis, add your OpenRouter API key:
-
-```bash
-# backend/.env
-OPENROUTER_API_KEY=your_api_key_here
-```
-
-Get a free API key at: https://openrouter.ai
-
-### Customizing Scans
-
-Edit `backend/tools/vuln_scanner.py` to:
-- Add custom payloads
-- Adjust timeout values
-- Enable/disable specific checks
-
----
-
-
-## 🛠️ Troubleshooting
-
-### Backend won't start
-```bash
-# Check Python version
-python3 --version  # Should be 3.8+
-
-# Reinstall dependencies
-cd backend
-pip install -r requirements.txt --force-reinstall
-```
-
-### Frontend won't start
-```bash
-# Clear cache and reinstall
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-npm start
-```
-
-### WebSocket connection fails
-- Check if backend is running on port 5000
-- Check firewall settings
-- Try accessing http://localhost:5000/api/health
-
-### No vulnerabilities detected
-- Ensure target is accessible
-- Check if target has protections (WAF, rate limiting)
-- Try a known vulnerable target first
-
----
-
-## 🎓 Learning Resources
-
-### Understanding Vulnerabilities
-
-**XSS (Cross-Site Scripting)**
-- Injecting malicious scripts into web pages
-- Can steal cookies, session tokens, credentials
-
-**SQL Injection**
-- Manipulating database queries
-- Can lead to data breach, authentication bypass
-
-**IDOR (Insecure Direct Object Reference)**
-- Accessing other users' data by changing IDs
-- Common in APIs and web applications
-
-**Business Logic Flaws**
-- Race conditions, price manipulation
-- Requires understanding application flow
-
-### Further Reading
-- OWASP Top 10: https://owasp.org/www-project-top-ten/
-- PortSwigger Web Security Academy: https://portswigger.net/web-security
-
----
-
-## 🔒 Legal & Ethical Use
-
-⚠️ **IMPORTANT**: Only scan targets you own or have explicit permission to test.
-
-**Authorized Use Cases:**
-- Your own applications
-- Bug bounty programs
-- Penetration testing engagements with contracts
-- Educational labs (DVWA, WebGoat, etc.)
-
-**Unauthorized scanning is illegal and may result in:**
-- Criminal charges
-- Civil lawsuits
-- Network bans
-
-**Always get written permission before scanning!**
+1.  Create a file named `.env` inside the `backend/` directory.
+2.  Add your API key to it:
+    ```env
+    # backend/.env
+    OPENROUTER_API_KEY="your_api_key_here"
+    ```
+> Get a free key at **[openrouter.ai](https://openrouter.ai)**. The application will function without it, but AI features will be disabled.
 
 ---
 
 ## 🚀 Advanced Features Explained
 
 ### Attack Chain Detection
-
-CyberSage identifies combinations of vulnerabilities that create critical attack paths:
-
-**Example Chain: XSS → Session Hijack**
-1. Stored XSS vulnerability found
-2. Missing HTTPOnly flag on cookies
-3. **Result**: Attacker can steal session tokens and impersonate users
-
-**Why This Matters:**
-- Single vulnerabilities might be rated Medium
-- Combined, they create Critical risk
-- Prioritizes remediation efforts
+CyberSage intelligently connects individual vulnerabilities to reveal how they can be combined into a high-impact attack.
+-   **Example Chain**: `Sensitive File Exposure` -> `Credential Extraction` -> `Internal Access`.
+-   **Why it Matters**: It elevates the risk of seemingly low-severity findings and helps prioritize remediation by focusing on the most critical paths.
 
 ### Business Logic Scanner
+This module tests for flaws unique to the application's logic that generic scanners miss.
+-   **Race Conditions**: Sends rapid, parallel requests to endpoints like `/redeem-voucher` to check for double-spend flaws.
+-   **Price Manipulation**: Attempts to submit negative or zero values in cart/payment forms to bypass server-side validation.
 
-Tests for flaws automated scanners miss:
+### Professional Tool Integration
+The `ScanOrchestrator` acts as a master controller, deploying a suite of best-in-class open-source tools based on the scan configuration. It automates execution, parses the output, and integrates the findings directly into the real-time feed, correlating them with its own discoveries.
 
-**Race Conditions**
-- Sends 50 parallel requests to payment endpoints
-- Detects if multiple transactions succeed
-- Example: Redeeming same voucher multiple times
+---
 
-**Price Manipulation**
-- Tests negative values, zero prices
-- Checks if server validates amounts
-- Example: Buying items for $0.00
+## 🛠️ Troubleshooting
 
-**Authentication Bypass**
-- Tests direct access to protected pages
-- Tries header manipulation techniques
-- Example: Accessing /admin without login
+-   **WebSocket Connection Fails**:
+    -   Ensure the backend container is running: `docker ps`.
+    -   Check the backend logs for errors: `docker-compose logs backend`.
+    -   Verify the backend is accessible at `http://localhost:5000/api/health`.
 
-### AI Analysis
+-   **Frontend Fails to Start**:
+    -   Ensure you are in the project root directory when running `docker-compose`.
+    -   Check frontend logs: `docker-compose logs frontend`.
 
-Uses OpenRouter API for intelligent insights:
+-   **No Vulnerabilities Detected**:
+    -   Verify the target is accessible from within the Docker container.
+    -   Try scanning a known vulnerable application (like OWASP Juice Shop) to confirm the scanner is working.
+    -   Check if the target is protected by a WAF that might be blocking scan traffic.
 
-**Severity Prioritization**
-- Analyzes distribution of findings
-- Recommends immediate actions
-- Provides context-aware guidance
+---
 
-**Risk Assessment**
-- Calculates overall security posture score
-- Considers confidence levels
-- Factors in attack chains
+## 🔒 Legal & Ethical Use
 
-**Smart Recommendations**
-- Tailored to your specific findings
-- Prioritizes quick wins
-- Suggests long-term improvements
+> ⚠️ **IMPORTANT**: This tool is intended for professional and ethical use only. You must only scan targets that you own or have explicit, written permission to test. Unauthorized scanning of systems is illegal and can lead to severe legal consequences. The developers of CyberSage are not responsible for any misuse of this tool.
 
 ---
 
 ## 📊 API Reference
 
 ### REST Endpoints
-
-**Health Check**
-```http
-GET /api/health
-```
-
-**Get All Scans**
-```http
-GET /api/scans
-```
-
-**Get Scan Details**
-```http
-GET /api/scan/{scan_id}
-```
-
-**Export Scan Results**
-```http
-GET /api/scan/{scan_id}/export
-```
+-   `GET /api/health`: Checks the health of the backend server.
+-   `GET /api/scans`: Retrieves a list of all historical scans.
+-   `GET /api/scan/<scan_id>`: Fetches detailed results for a specific scan.
+-   `GET /api/scan/<scan_id>/export`: Exports full scan data as JSON.
+-   `GET /api/scan/<scan_id>/export/pdf`: Exports a summary report as a PDF.
+-   `POST /api/scan/import`: Imports scan data from third-party tools.
 
 ### WebSocket Events
+*Communication occurs over the `/scan` namespace.*
 
 **Client → Server**
-
-```javascript
-// Start a scan
-socket.emit('start_scan', {
-  target: 'https://example.com',
-  mode: 'elite'
-});
-
-// Stop a scan
-socket.emit('stop_scan', {
-  scan_id: 'scan_123'
-});
-```
+-   `start_scan`: Initiates a new scan. Payload: `{ target, mode, options }`.
+-   `stop_scan`: Requests to stop an active scan. Payload: `{ scan_id }`.
 
 **Server → Client**
-
-```javascript
-// Connected
-socket.on('connected', (data) => {
-  console.log('Ready:', data.status);
-});
-
-// Scan started
-socket.on('scan_started', (data) => {
-  console.log('Scan ID:', data.scan_id);
-});
-
-// Progress update
-socket.on('scan_progress', (data) => {
-  console.log(`${data.progress}% - ${data.phase}`);
-});
-
-// Vulnerability found
-socket.on('vulnerability_found', (data) => {
-  console.log('Vuln:', data.type, data.severity);
-});
-
-// Chain detected
-socket.on('chain_detected', (data) => {
-  console.log('Chain:', data.name, data.impact);
-});
-
-// Scan completed
-socket.on('scan_completed', (data) => {
-  console.log('Results:', data.results_summary);
-});
-```
-
----
-
-## 🎨 Customization Guide
-
-### Adding a New Scanner
-
-1. Create scanner module:
-```python
-# backend/tools/custom_scanner.py
-class CustomScanner:
-    def __init__(self, database, broadcaster):
-        self.db = database
-        self.broadcaster = broadcaster
-    
-    def scan(self, scan_id, target):
-        vulnerabilities = []
-        
-        # Your scanning logic here
-        
-        # Broadcast findings
-        for vuln in vulnerabilities:
-            self.broadcaster.broadcast_vulnerability_found(scan_id, vuln)
-            self.db.add_vulnerability(scan_id, vuln)
-        
-        return vulnerabilities
-```
-
-2. Integrate in orchestrator:
-```python
-# backend/core/scan_orchestrator.py
-from tools.custom_scanner import CustomScanner
-
-class ScanOrchestrator:
-    def __init__(self, database, broadcaster):
-        # ... existing code ...
-        self.custom_scanner = CustomScanner(database, broadcaster)
-    
-    def execute_elite_scan(self, scan_id, target, scan_mode):
-        # ... existing code ...
-        
-        # Add your scanner
-        custom_vulns = self.custom_scanner.scan(scan_id, target)
-        all_vulnerabilities.extend(custom_vulns)
-```
-
-### Adding UI Components
-
-Create new component:
-```jsx
-// frontend/src/components/CustomComponent.jsx
-import React from 'react';
-
-export const CustomComponent = ({ data }) => {
-  return (
-    <div className="bg-gray-800 rounded-lg p-6">
-      <h2 className="text-xl font-bold text-white mb-4">
-        Custom Feature
-      </h2>
-      {/* Your component JSX */}
-    </div>
-  );
-};
-```
-
-Add to Dashboard:
-```jsx
-// frontend/src/components/Dashboard.jsx
-import { CustomComponent } from './CustomComponent';
-
-// In render:
-<CustomComponent data={yourData} />
-```
-
----
-
-## 🐛 Known Issues & Limitations
-
-### Current Limitations
-
-1. **No Authentication**
-   - Single user mode
-   - No login system
-   - Plan: Add JWT authentication in future
-
-2. **Limited Concurrent Scans**
-   - One scan at a time per instance
-   - Plan: Add scan queue system
-
-3. **No Scan History UI**
-   - Database stores history
-   - Not exposed in current UI
-   - Plan: Add history viewer
-
-4. **Basic SQLi Detection**
-   - Uses error-based detection
-   - May miss blind SQLi
-   - Plan: Add time-based detection
-
-### Workarounds
-
-**For multiple scans:**
-- Wait for current scan to complete
-- Or run multiple backend instances on different ports
-
-**For scan history:**
-- Access database directly: `sqlite3 cybersage_v2.db`
-- Or use API: `GET /api/scans`
+-   `scan_started`: Confirms a scan has begun.
+-   `scan_progress`: Provides percentage and phase updates.
+-   `vulnerability_found`: Pushes a new vulnerability in real-time.
+-   `chain_detected`: Pushes a new attack chain as a high-priority alert.
+-   `ai_insight`: Pushes an AI-generated analysis or recommendation.
+-   `scan_completed`: Signals the end of a scan with a summary.
 
 ---
 
 ## 🤝 Contributing
 
-Want to improve CyberSage? Here are some ideas:
+Contributions are welcome! Here are some areas for improvement:
 
-### Easy Wins
-- [ ] Add more vulnerability payloads
-- [ ] Improve error messages
-- [ ] Add dark/light theme toggle
-- [ ] Create PDF export for reports
-
-### Medium Difficulty
-- [ ] Implement scan queue system
-- [ ] Add user authentication
-- [ ] Create scan history viewer
-- [ ] Add screenshot capture for findings
-
-### Advanced
-- [ ] Machine learning for false positive detection
-- [ ] Distributed scanning across multiple workers
-- [ ] Integration with bug bounty platforms
-- [ ] Custom vulnerability signatures
-
----
-
-### Anticipate Questions
-
-**Q: How is this different from Burp Suite/OWASP ZAP?**
-A: Focus on real-time UI, AI analysis, and attack chain detection. Built for modern web apps with API-first approach.
-
-**Q: How do you handle false positives?**
-A: Confidence scoring system, multi-tool correlation, and AI validation layer.
-
-**Q: Can this scale to enterprise use?**
-A: Modular architecture allows easy integration of new scanners. Database design supports multiple users and concurrent scans.
-
-**Q: What's the performance like?**
-A: Elite scan completes in ~30 minutes. Async architecture ensures non-blocking operations.
-
-**Q: Security of the tool itself?**
-A: Currently localhost only. Production deployment would add authentication, rate limiting, and input validation.
-
----
+-   [ ] **Add More Pro Tools**: Integrate tools like `subfinder` or `httpx`.
+-   [ ] **Scan Queue System**: Implement a queue to handle multiple concurrent scan requests.
+-   [ ] **User Authentication**: Add a login system (JWT-based) to support multiple users.
+-   [ ] **Enhanced Reporting**: Improve the PDF report with more charts and detailed remediation.
+-   [ ] **CI/CD Pipeline**: Add GitHub Actions for automated testing and builds.
