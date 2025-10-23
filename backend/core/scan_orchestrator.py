@@ -42,8 +42,15 @@ class ScanOrchestrator:
         all_vulnerabilities = []
         all_chains = []
         
-        # Get selected tools
-        tools_config = options.get('tools', {}) if options else {}
+        # Get selected tools - FIX: ensure it's always a dict
+        tools_config = {}
+        if options and 'tools' in options:
+            tools_data = options['tools']
+            if isinstance(tools_data, dict):
+                tools_config = tools_data
+            else:
+                print(f"[WARNING] tools is not a dict: {type(tools_data)}")
+                tools_config = {}
         
         try:
             # Check cancellation
