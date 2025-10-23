@@ -329,18 +329,12 @@ def handle_start_scan(data):
     
     target = data.get('target')
     scan_mode = data.get('mode', 'elite')
-    
-    # Fix tools configuration - ensure it's always a dict
-    tools_config = data.get('tools', {})
-    if not isinstance(tools_config, dict):
-        tools_config = {}
-    
     options = {
         'intensity': data.get('intensity', 'normal'),
         'auth': data.get('auth', {}),
         'policy': data.get('policy', {}),
         'spiderConfig': data.get('spiderConfig', {}),
-        'tools': tools_config  # FIXED: Always pass dict
+        'tools': data.get('tools', {})  # FIXED: Store selected tools
     }
     
     if not target:
